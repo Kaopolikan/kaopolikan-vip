@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Kaopolikan VIP</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --dark: #000c1a; --gold: #d4af37; }
+        body { background-color: var(--dark); color: white; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .card { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        input, select { background: #000 !important; border: 1px solid #444 !important; color: #fff !important; font-size: 16px !important; border-radius: 12px !important; }
+        .btn-tap:active { transform: scale(0.95); opacity: 0.8; }
+    </style>
+</head>
+<body class="p-4 pt-10 pb-10">
+    <div class="max-w-md mx-auto">
+        <h1 class="text-3xl font-black text-[#d4af37] text-center mb-6 italic">KAOPOLIKAN VIP</h1>
+
+        <!-- BALANCE -->
+        <div class="card p-6 mb-6 text-center border-gold">
+            <p class="text-[10px] text-gray-400 uppercase font-black mb-1">Ganancia Limpia Semanal</p>
+            <h2 id="total" class="text-5xl font-black tracking-tighter text-green-400">$0.00</h2>
+            <div id="mpgBox" class="mt-4 pt-4 border-t border-white/10 text-gold font-bold text-lg hidden"></div>
+        </div>
+
+        <!-- CONTROLES -->
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <button onclick="ask('l')" class="card p-4 btn-tap border-green-500/30 text-green-400 font-bold uppercase text-[10px]">💰 Añadir Carga</button>
+            <button onclick="ask('f')" class="card p-4 btn-tap border-blue-500/30 text-blue-400 font-bold uppercase text-[10px]">⛽ Diesel (+$1.5)</button>
+            <button onclick="ask('i')" class="card p-4 btn-tap border-cyan-500/30 text-cyan-400 font-bold uppercase text-[10px]">➕ Ingreso Extra</button>
+            <button onclick="ask('e')" class="card p-4 btn-tap border-red-500/30 text-red-400 font-bold uppercase text-[10px]">➖ Lumper/Gasto</button>
+        </div>
+
+        <!-- CONFIG -->
+        <div class="card p-4 mb-6">
+            <select id="mode" onchange="u()" class="w-full mb-3 text-gold font-bold text-sm">
+                <option value="662">SOLO SEMANALES ($662)</option>
+                <option value="779.4">PRORRATEAR ($779)</option>
+                <option value="1170.33">COBRO TOTAL ($1170)</option>
+            </select>
+            <input type="number" id="mil" placeholder="Millas de la semana" oninput="u()" class="w-full p-3 text-sm">
+        </div>
+
+        <!-- LISTA -->
+        <div class="card p-4 mb-10 min-h-[100px]">
+            <h3 class="text-[10px] font-black text-gray-500 uppercase mb-3 border-b border-white/5 pb-2">Movimientos</h3>
+            <div id="list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+        </div>
+
+        <!-- ADMIN -->
+        <div class="flex gap-4">
+            <button onclick="rs()" class="flex-1 p-3 border border-red-500/30 rounded-xl text-red-500 text-[10px] font-bold uppercase">Borrar Semana</button>
+            <button id="restBtn" onclick="rt()" class="flex-1 p-3 border border-gold/30 rounded-xl text-gold text-[10px] font-bold uppercase" style="display:none">Restaurar</button>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-6 hidden z-50">
+        <div class="card w-full p-8 text-center border-gold">
+            <h3 id="mTitle" class="text-xl font-black text-gold mb-6 uppercase">Monto</h3>
+            <input type="number" id="mInput" class="w-full p-4 text-3xl text-center mb-6" placeholder="0.00">
+            <div class="flex gap-3">
+                <button onclick="cl()" class="flex-1 p-4 bg-white/5 rounded-2xl font-bold">Atrás</button>
+                <button onclick="sv()" class="flex-1 p-4 bg-gold text-black font-black rounded-2xl">GUARDAR</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mt='', db=JSON.parse(localStorage.getItem('K_APP'))||{l:[],i:[],e:[],f:[]};
+        function ask(t){ mt=t; const ts={l:'Carga Bruta',i:'Extra In',e:'Gasto Extra',f:'Diesel'}; document.getElementById('mTitle').innerText=ts[t]; document.getElementById('modal').classList.remove('hidden'); document.getElementById('mInput').focus(); }
+        function cl(){ document.getElementById('modal').classList.add('hidden'); document.getElementById('mInput').value=''; }
+        function sv(){ let v=parseFloat(document.getElementById('mInput').value); if(v>0){ db[mt].push(v); cl(); u(); } }
+        function del(t,i){ db[t].splice(i,1); u(); }
+        function rs(){ if(confirm('¿Borrar?')){ localStorage.setItem('K_BKP', JSON.stringify(db)); db={l:[],i:[],e:[],f:[]}; document.getElementById('mil').value=''; u(); } }
+        function rt(){ let b=localStorage.getItem('K_BKP'); if(b){ db=JSON.parse(b); localStorage.removeItem('K_BKP'); u(); } }
+        function u(){
+            localStorage.setItem('K_APP', JSON.stringify(db));
+            document.getElementById('restBtn').style.display=localStorage.getItem('K_BKP')?'block':'none';
+            let sL=db.l.reduce((s,v)=>s+v*0.88,0), sI=db.i.reduce((s,v)=>s+v,0), sE=db.e.reduce((s,v)=>s+v,0), sF=db.f.reduce((s,v)=>s+v+1.5,0), f=parseFloat(document.getElementById('mode').value), m=parseFloat(document.getElementById('mil').value)||0;
+            let tot=sL+sI-sE-sF-f;
+            let res=document.getElementById('total'); res.innerText='$'+tot.toLocaleString(undefined,{minimumFractionDigits:2});
+            res.style.color=tot>=0?'#2ecc71':'#ff4d4d';
+            document.getElementById('mpgBox').innerText=m>0?'Cost/Mi: $'+((sE+sF+f)/m).toFixed(2):'';
+            document.getElementById('mpgBox').classList.toggle('hidden',m<=0);
+            let html='';
+            db.l.forEach((v,i)=>html+=row('Carga (-12%)',v*0.88,'text-green-400','l',i));
+            db.i.forEach((v,i)=>html+=row('Extra (+)',v,'text-cyan-400','i',i));
+            db.e.forEach((v,i)=>html+=row('Gasto (-)',v,'text-red-400','e',i));
+            db.f.forEach((v,i)=>html+=row('Diesel (+1.5)',v+1.5,'text-red-400','f',i));
+            document.getElementById('list').innerHTML=html||'<p class="text-center text-gray-700 py-4 italic text-xs">Sin movimientos</p>';
+        }
+        function row(l,v,c,t,i){ return `<div class="flex justify-between items-center py-2 border-b border-white/5 font-mono text-xs"><span>${l}</span><span class="${c}">$${v.toFixed(2)}<b onclick="del('${t}',${i})" class="text-red-500 ml-3">✕</b></span></div>`; }
+        u();
+    </script>
+</body>
+</html>
